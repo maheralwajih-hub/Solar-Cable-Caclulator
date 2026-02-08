@@ -5,7 +5,7 @@ import { ResultsDisplay } from './components/ResultsDisplay';
 import { BomTable } from './components/BomTable';
 import { calculateDcSystem, calculateInverterBlock, calculateMainSwitch } from './utils';
 import { CalculationInput, BomItem } from './types';
-import { Sun, Calculator, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Sun, Calculator, AlertTriangle, ArrowDown } from 'lucide-react';
 
 const DEFAULT_INPUT: CalculationInput = {
   systemCapacityDc: 213.6,
@@ -57,6 +57,10 @@ function App() {
   const handleCalculate = () => {
     setCommittedInput(input);
     setHasCalculated(true);
+    // Smooth scroll to results if already calculated
+    if (hasCalculated) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const dcResult = useMemo(() => calculateDcSystem(committedInput), [committedInput]);
@@ -168,11 +172,6 @@ function App() {
     });
 
     // 9. AC Cable Tray (Main Trunk)
-    // We assume the trunk runs for the longest inverter run length, or distinct segments? 
-    // For simplicity in BOM, we take the max run length of any inverter group for the trunk, 
-    // or arguably the trunk length is separate. 
-    // The previous app used 'runLengthInv'. Now we have individual run lengths.
-    // We will list it as 'Main Trunk Tray' and use the maximum run length among inverters as a safe estimate for the common path.
     const maxInvRun = Math.max(...activeInput.inverters.map(i => i.runLength));
     
     items.push({
@@ -256,9 +255,9 @@ function App() {
   }, [committedInput, dcResult, inverterResults, mainResult]);
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-12 bg-slate-50">
       <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
           <Sun className="w-8 h-8 text-yellow-400" />
           <div>
             <h1 className="text-xl font-bold tracking-tight">SolarSpec Engineer</h1>
@@ -267,78 +266,71 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* Input Section */}
+        <section className="space-y-6">
+          <InputForm values={input} onChange={handleInputChange} />
           
-          {/* Left Column: Inputs */}
-          <div className="lg:col-span-4 space-y-6">
-            <InputForm values={input} onChange={handleInputChange} />
-            
-            <button 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+             <button 
               onClick={handleCalculate}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 transform active:scale-95"
+              className="sm:col-span-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 transform active:scale-95 text-lg"
             >
-              <Calculator className="w-5 h-5" />
+              <Calculator className="w-6 h-6" />
               Calculate Results
             </button>
-             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
-                <p className="font-semibold mb-1">Guidebook Constraints Applied:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
+             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-xs text-blue-800 flex flex-col justify-center">
+                <p className="font-bold mb-1">Design Standards:</p>
+                <ul className="list-disc list-inside space-y-0.5 opacity-80">
                     <li>Safety Factor: 1.25x</li>
-                    <li>Cable Tray Fill: Max 20%</li>
-                    <li>DC Wire: 4mm² Fixed</li>
-                    <li>Supports Multiple Inv Types</li>
+                    <li>Tray Fill: Max 20%</li>
+                    <li>DC Wire: 4mm²</li>
                 </ul>
             </div>
           </div>
+        </section>
 
-          {/* Right Column: Results */}
-          <div className="lg:col-span-8">
-            {hasCalculated ? (
-              <>
-                {dcAcRatio > 1.3 && (
-                    <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4 shadow-sm animate-fade-in">
-                        <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
-                            <AlertTriangle className="w-6 h-6 text-amber-600" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-amber-900">System Design Warning: High DC/AC Ratio</h3>
-                            <p className="text-amber-800 text-sm mt-1 leading-relaxed">
-                                The calculated DC/AC ratio is <strong className="text-amber-950">{dcAcRatio.toFixed(2)}</strong>, which exceeds the recommended limit of <strong>1.3</strong>.
-                            </p>
-                            <p className="text-amber-700 text-xs mt-2">
-                                Current Configuration: {committedInput.systemCapacityDc} kWp (DC) / {committedInput.systemCapacityAc} kW (AC).
-                                Consider reducing the number of panels or increasing inverter capacity to avoid power clipping.
-                            </p>
-                        </div>
-                    </div>
-                )}
-
-                <ResultsDisplay 
-                  dc={dcResult} 
-                  inverterResults={inverterResults} 
-                  main={mainResult} 
-                />
-                
-                <BomTable items={bomItems} />
-              </>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center h-full min-h-[500px]">
-                <div className="bg-slate-50 p-6 rounded-full mb-6">
-                  <Calculator className="w-16 h-16 text-slate-300" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-700 mb-2">Awaiting Calculation</h3>
-                <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
-                  Adjust the system specifications in the panel on the left (including multiple inverter types) and click the <span className="font-bold text-slate-700">Calculate Results</span> button to generate the complete engineering design analysis and Bill of Materials (BOM).
-                </p>
-                <div className="mt-8 flex items-center gap-2 text-sm text-blue-600 font-medium animate-pulse">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Start on the left</span>
-                </div>
+        {/* Results Section */}
+        <section>
+          {hasCalculated ? (
+            <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center gap-4 text-slate-300 my-8">
+                  <div className="h-px bg-slate-300 flex-1"></div>
+                  <span className="text-sm uppercase tracking-widest font-semibold">Results</span>
+                  <div className="h-px bg-slate-300 flex-1"></div>
               </div>
-            )}
-          </div>
-        </div>
+
+              {dcAcRatio > 1.3 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-4 shadow-sm">
+                      <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
+                          <AlertTriangle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div>
+                          <h3 className="font-bold text-amber-900">High DC/AC Ratio Warning</h3>
+                          <p className="text-amber-800 text-sm mt-1">
+                              Ratio: <strong className="text-amber-950">{dcAcRatio.toFixed(2)}</strong> (Limit: 1.3). 
+                              Consider adjusting panels or inverters.
+                          </p>
+                      </div>
+                  </div>
+              )}
+
+              <ResultsDisplay 
+                dc={dcResult} 
+                inverterResults={inverterResults} 
+                main={mainResult} 
+              />
+              
+              <BomTable items={bomItems} />
+            </div>
+          ) : (
+            <div className="mt-12 text-center opacity-50 flex flex-col items-center">
+               <ArrowDown className="w-8 h-8 text-slate-400 animate-bounce mb-2" />
+               <p className="text-slate-500">Enter specifications and click Calculate</p>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
