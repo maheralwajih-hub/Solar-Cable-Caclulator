@@ -105,8 +105,11 @@ export const ResultsDisplay: React.FC<Props> = ({ dc, inverterResults, main }) =
                         <td className="px-4 py-4 text-slate-600">
                             RSG {inv.conduitSize}mm
                         </td>
-                         <td className="px-4 py-4 text-xs text-slate-500">
-                            {inv.traySize}
+                         <td className="px-4 py-4">
+                            <div className="text-xs text-slate-500">{inv.traySize}</div>
+                            <div className={`text-xs font-medium ${inv.fillRatio > 20 ? 'text-red-500' : 'text-green-600'}`}>
+                                Fill: {inv.fillRatio.toFixed(1)}%
+                            </div>
                         </td>
                     </tr>
                 ))}
