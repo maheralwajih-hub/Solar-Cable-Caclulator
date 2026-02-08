@@ -1,0 +1,5 @@
+{
+  "name": "SolarSpec Engineer V2",
+  "description": "Automated electrical sizing, cable tray calculation, and BOM generator for commercial solar PV systems based on specific engineering guidebooks.",
+  "requestFramePermissions": []
+}
